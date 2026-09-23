@@ -1,0 +1,17 @@
+name: run
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        g: [0, 1]
+    runs-on: ubuntu-latest
+    env:
+      K: ${{ secrets.K }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          for f in a q; do openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:K -in $f.bin -out $f; done
+          python3 a
