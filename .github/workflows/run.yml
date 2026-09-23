@@ -1,17 +1,28 @@
 name: run
 on:
+  schedule:
+    - cron: "30 20,8 * * *"
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   run:
     strategy:
       fail-fast: false
       matrix:
-        g: [0, 1]
+        g: [0, 1, 2, 3, 4]
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     env:
       K: ${{ secrets.K }}
     steps:
       - uses: actions/checkout@v4
       - run: |
-          for f in a q; do openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:K -in $f.bin -out $f; done
-          python3 a
+          for f in a b q; do openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:K -in $f.bin -out $f; done
+          python3 a ${{ matrix.g }} out.gz
+      - run: openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:K -in out.gz -out data.bin
+      - run: |
+          gh release view g${{ matrix.g }} >/dev/null 2>&1 || gh release create g${{ matrix.g }} --title g${{ matrix.g }} --notes ""
+          gh release upload g${{ matrix.g }} data.bin --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
